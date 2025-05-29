@@ -14,6 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from tqdm import tqdm
+import time
 
 # # Set up Chrome options to appear as a regular browser
 # chrome_options = Options()
@@ -37,24 +38,33 @@ chrome_options.add_experimental_option("prefs", prefs)
 driver = Driver(undetected=True, headless=True)
 
 # Ask the user what they want to do
-print("Put cert numbers in a text file called \"certs.txt\" in the same folder as this program.")
+print("Put cert numbers and prices in the first 2 columns respectively of a csv file called \"certs.csv\" in the same folder as this program.")
 
 input("Press enter when ready...")
 
 # Open the file containing the cert numbers (one per line)
-with open('certs.txt', 'r') as file:
-    cert_numbers = [int(line.strip()) for line in file if line.strip()]
+with open('certs.csv', 'r') as csv_file:
+    reader = csv.reader(csv_file)
+    price, cert_numbers = [],[]
+    for row in reader:
+        cert_numbers.append(row[0])
+        price.append(row[1])
+    
 
 
-csv_file = "psa_certs.csv"
-fieldnames = ["Cert Number", "Item Grade", "Label Type", "Reverse Cert/Barcode", 
+# Getting the current date and time
+timestr = time.strftime("%Y%m%d-%H%M%S")
+
+csv_file = f"psa_cert_data_{timestr}.csv"
+fieldnames = ["Price", "Cert Number", "Item Grade", "Label Type", "Reverse Cert/Barcode", 
               "Year", "Brand/Title", "Subject", "Card Number", "Category", "Variety/Pedigree"]
 file_exists = os.path.exists(csv_file)
 with open(csv_file, "a", newline="") as csvfile:
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     if not file_exists:
         writer.writeheader()
-
+    
+    i = 0
     for cert_num in tqdm(cert_numbers):
         url = f"https://www.psacard.com/cert/{cert_num}/psa"
         try:
@@ -74,7 +84,7 @@ with open(csv_file, "a", newline="") as csvfile:
                 continue
 
             # Scrape all dt/dd pairs in the Item Information section
-            data = {"Cert Number": cert_num}
+            data = {"Price": price[i], "Cert Number": cert_num}
             try:
                 info_dl = driver.find_element(By.CSS_SELECTOR, "h3.text-subtitle2 + dl")
                 rows = info_dl.find_elements(By.CSS_SELECTOR, "div.flex.w-full")
@@ -109,12 +119,13 @@ with open(csv_file, "a", newline="") as csvfile:
 
             # Respect crawl-delay
             # time.sleep(1)
-
         except Exception as e:
             print(f"Cert {cert_num}: Error occurred - {e}")
+        i = i+1
 
 print("Scraping Complete.")
-print("Data Stored in \"psa_certs.csv\"")
+print(f"Data Stored in \"{csv_file}\"")
 print("You may safely close this window")
+input()
 # Close the browser
 driver.quit()

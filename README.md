@@ -5,4 +5,4 @@ Scrape PSA Card Certs using Selenium Base
 Make sure all imports used in n_certs.py are installed
 Run n_certs.py
 
-Put all certifications to be scraped on their own line in a text document called "certs.txt" in this folder
+Put all certifications to be scraped in the first collumn of "certs.csv" in this folder and prices in the second.
