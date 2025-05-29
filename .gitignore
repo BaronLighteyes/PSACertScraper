@@ -4,3 +4,4 @@ psa_certs.csv
 /build
 n_certs.spec
 /dist
+psa_cert_data_*
