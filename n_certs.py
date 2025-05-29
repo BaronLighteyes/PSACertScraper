@@ -123,9 +123,10 @@ with open(csv_file, "a", newline="") as csvfile:
             print(f"Cert {cert_num}: Error occurred - {e}")
         i = i+1
 
+driver.quit()
 print("Scraping Complete.")
 print(f"Data Stored in \"{csv_file}\"")
 print("You may safely close this window")
 input()
 # Close the browser
-driver.quit()
+
