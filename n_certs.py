@@ -44,11 +44,14 @@ input("Press enter when ready...")
 
 # Open the file containing the cert numbers (one per line)
 with open('certs.csv', 'r') as csv_file:
-    reader = csv.reader(csv_file)
-    price, cert_numbers = [],[]
-    for row in reader:
-        cert_numbers.append(row[0])
-        price.append(row[1])
+    try:
+        reader = csv.reader(csv_file)
+        price, cert_numbers = [],[]
+        for row in reader:
+            cert_numbers.append(row[0])
+            price.append(row[1])
+    except Exception as e:
+        print(f"Failed to read {csv_file} - {e}")
     
 
 
@@ -69,22 +72,30 @@ with open(csv_file, "a", newline="") as csvfile:
         url = f"https://www.psacard.com/cert/{cert_num}/psa"
         try:
             driver.get(url)
-            try:
-                # Wait for the page to load and the element to be present
-                WebDriverWait(driver, 4).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "h3.text-subtitle2 + dl"))
-                )
-            except Exception as e:
-                print(f"Cert {cert_num}: Timed out waiting for item info - {e}")
-                continue
+            data = {"Price": price[i], "Cert Number": cert_num}
+            max_attempts = 3
+            for attempt in range(max_attempts):   
+                try:
+                    # Wait for the page to load and the element to be present
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "h3.text-subtitle2 + dl"))
+                    )
+                except Exception as e:
+                    if attempt == max_attempts:
+                        print(f"Cert {cert_num}: Timed out waiting for item info - {e}")
+                    else:
+                        print(f"Timeout error, retrying...")
+                    pass
+                else:
+                    break
 
             # Basic 404 check
             if "404" in driver.title or "not found" in driver.page_source.lower():
                 print(f"Cert {cert_num}: Page not found (404)")
+                writer.writerow(data)
                 continue
 
             # Scrape all dt/dd pairs in the Item Information section
-            data = {"Price": price[i], "Cert Number": cert_num}
             try:
                 info_dl = driver.find_element(By.CSS_SELECTOR, "h3.text-subtitle2 + dl")
                 rows = info_dl.find_elements(By.CSS_SELECTOR, "div.flex.w-full")
@@ -115,7 +126,7 @@ with open(csv_file, "a", newline="") as csvfile:
 
             except Exception as e:
                 print(f"Cert {cert_num}: Failed to scrape item info - {e}")
-                writer.writerow()
+                writer.writerow(data)
 
             # Respect crawl-delay
             # time.sleep(1)
